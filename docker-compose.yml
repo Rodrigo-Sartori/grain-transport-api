@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: grain-transport-db
+    environment:
+      POSTGRES_DB: grain_transport
+      POSTGRES_USER: grain_user
+      POSTGRES_PASSWORD: grain_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grain_user -d grain_transport"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: grain-transport-api
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/grain_transport
+      SPRING_DATASOURCE_USERNAME: grain_user
+      SPRING_DATASOURCE_PASSWORD: grain_pass
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  postgres_data:
