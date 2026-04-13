@@ -1,5 +1,6 @@
 package br.com.test.graintransport.grain_transport_api.config;
 
+import br.com.test.graintransport.grain_transport_api.exception.BadRequestException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -8,7 +9,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -49,6 +49,13 @@ public class GlobalExceptionHandler {
         log.error("Erro inesperado: {}", ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(errorBody("Erro interno do servidor", HttpStatus.INTERNAL_SERVER_ERROR));
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<Map<String, Object>> handleBadRequest(BadRequestException ex) {
+        log.error("Erro inesperado: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(errorBody(ex.getMessage(), HttpStatus.BAD_REQUEST));
     }
 
     private Map<String, Object> errorBody(String message, HttpStatus status) {

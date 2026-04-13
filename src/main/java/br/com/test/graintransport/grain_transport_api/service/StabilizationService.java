@@ -28,8 +28,8 @@ public class StabilizationService {
 
     private static final double MARGEM_MINIMA = 0.05;
     private static final double MARGEM_MAXIMA = 0.20;
-    private static final double ESTOQUE_ALTO   = 1000.0;
-    private static final double ESTOQUE_BAIXO  = 100.0;
+    private static final double ESTOQUE_ALTO = 1000.0;
+    private static final double ESTOQUE_BAIXO = 100.0;
 
     @Value("${stabilization.window-size:5}")
     private int windowSize;
@@ -71,6 +71,8 @@ public class StabilizationService {
     }
 
     private void persistirPesagem(LeituraBalancaDTO leitura, List<Double> pesos) {
+        log.info("Janela suficiente: plate={} ({}/{})", leitura.getPlate(), pesos, LocalDateTime.now());
+
         Balanca balanca = balancaRepository.findById(leitura.getId())
                 .orElseThrow(() -> new IllegalArgumentException("Balança não encontrada: " + leitura.getId()));
 
@@ -78,11 +80,11 @@ public class StabilizationService {
                 .orElseThrow(() -> new IllegalStateException(
                         "Nenhuma transação aberta para a placa: " + leitura.getPlate()));
 
-        double pesoBruto   = pesos.stream().mapToDouble(Double::doubleValue).average().orElse(0);
-        double tara        = transacao.getCaminhao().getTara();
+        double pesoBruto = pesos.stream().mapToDouble(Double::doubleValue).average().orElse(0);
+        double tara = transacao.getCaminhao().getTara();
         double pesoLiquido = pesoBruto - tara;
-        double estoque     = transacao.getTipoGrao().getEstoqueToneladas();
-        double margem      = calcularMargem(estoque);
+        double estoque = transacao.getTipoGrao().getEstoqueToneladas();
+        double margem = calcularMargem(estoque);
 
         BigDecimal precoPorKg = transacao.getTipoGrao().getPrecoPorTonelada()
                 .divide(BigDecimal.valueOf(1000), 10, RoundingMode.HALF_UP);
@@ -101,7 +103,7 @@ public class StabilizationService {
                 .custoCarga(custoCarga)
                 .margemAplicada(margemBD)
                 .pesadoEm(LocalDateTime.now())
-                .build(); // criadoEm preenchido automaticamente pelo @CreationTimestamp
+                .build();
 
         pesagemRepository.save(pesagem);
         log.info("Pesagem salva: plate={}, pesoLíquido={}kg, custo=R${}, margem={}%",

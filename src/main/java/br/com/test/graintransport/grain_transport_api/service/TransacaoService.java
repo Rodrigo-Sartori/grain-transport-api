@@ -3,6 +3,7 @@ package br.com.test.graintransport.grain_transport_api.service;
 import br.com.test.graintransport.grain_transport_api.domain.TransacaoTransporte;
 import br.com.test.graintransport.grain_transport_api.dto.TransacaoRequestDTO;
 import br.com.test.graintransport.grain_transport_api.dto.TransacaoResponseDTO;
+import br.com.test.graintransport.grain_transport_api.exception.CaminhaoEmTransporteException;
 import br.com.test.graintransport.grain_transport_api.mapper.TransacaoMapper;
 import br.com.test.graintransport.grain_transport_api.repository.CaminhaoRepository;
 import br.com.test.graintransport.grain_transport_api.repository.FilialRepository;
@@ -38,6 +39,9 @@ public class TransacaoService {
                 .orElseThrow(() -> new EntityNotFoundException("Tipo de grão não encontrado: " + dto.getTipoGraoId()));
         var filial = filialRepository.findById(dto.getFilialId())
                 .orElseThrow(() -> new EntityNotFoundException("Filial não encontrada: " + dto.getFilialId()));
+        var transacaoParaCaminhao = transacaoRepository.findAbertasByCaminhao(caminhao.getId());
+        if (!transacaoParaCaminhao.isEmpty())
+            throw new CaminhaoEmTransporteException("Não é permitido cadastrar uma transação para caminhão com placa %s pois está em viagem".formatted(caminhao.getPlaca()));
 
         var transacao = TransacaoTransporte.builder()
                 .caminhao(caminhao).tipoGrao(tipoGrao).filial(filial)
