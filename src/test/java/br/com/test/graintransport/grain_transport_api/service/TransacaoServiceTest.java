@@ -5,6 +5,7 @@ import br.com.test.graintransport.grain_transport_api.domain.Filial;
 import br.com.test.graintransport.grain_transport_api.domain.TipoGrao;
 import br.com.test.graintransport.grain_transport_api.domain.TransacaoTransporte;
 import br.com.test.graintransport.grain_transport_api.dto.TransacaoRequestDTO;
+import br.com.test.graintransport.grain_transport_api.exception.CaminhaoEmTransporteException;
 import br.com.test.graintransport.grain_transport_api.repository.CaminhaoRepository;
 import br.com.test.graintransport.grain_transport_api.repository.FilialRepository;
 import br.com.test.graintransport.grain_transport_api.repository.TipoGraoRepository;
@@ -19,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,11 +61,12 @@ class TransacaoServiceTest {
     class Abrir {
 
         @Test
-        @DisplayName("deve retornar TransacaoResponseDTO com dados corretos")
+        @DisplayName("deve retornar TransacaoResponseDTO com dados corretos quando caminhão está livre")
         void deveRetornarResponseDTO() {
             when(caminhaoRepository.findById(1L)).thenReturn(Optional.of(caminhao()));
             when(tipoGraoRepository.findById(2L)).thenReturn(Optional.of(grao()));
             when(filialRepository.findById(3L)).thenReturn(Optional.of(filial()));
+            when(transacaoRepository.findAbertasByCaminhao(1L)).thenReturn(List.of());
             when(transacaoRepository.save(any())).thenAnswer(inv -> {
                 TransacaoTransporte t = inv.getArgument(0);
                 t.setId(99L);
@@ -77,6 +80,39 @@ class TransacaoServiceTest {
             assertThat(result.tipoGrao()).isEqualTo("Soja");
             assertThat(result.filial()).isEqualTo("Filial Norte");
             assertThat(result.finalizadaEm()).isNull();
+        }
+
+        @Test
+        @DisplayName("deve lançar CaminhaoEmTransporteException quando caminhão já tem transação aberta")
+        void deveLancarExcecaoSeCaminhaoJaEmTransporte() {
+            var transacaoAberta = TransacaoTransporte.builder()
+                    .id(10L).caminhao(caminhao()).tipoGrao(grao()).filial(filial()).build();
+
+            when(caminhaoRepository.findById(1L)).thenReturn(Optional.of(caminhao()));
+            when(tipoGraoRepository.findById(2L)).thenReturn(Optional.of(grao()));
+            when(filialRepository.findById(3L)).thenReturn(Optional.of(filial()));
+            when(transacaoRepository.findAbertasByCaminhao(1L)).thenReturn(List.of(transacaoAberta));
+
+            assertThatThrownBy(() -> service.abrir(new TransacaoRequestDTO(1L, 2L, 3L)))
+                    .isInstanceOf(CaminhaoEmTransporteException.class)
+                    .hasMessageContaining("ABC-1234");
+        }
+
+        @Test
+        @DisplayName("não deve salvar transação quando caminhão está em viagem")
+        void naoDeveSalvarQuandoCaminhaoEmViagem() {
+            var transacaoAberta = TransacaoTransporte.builder()
+                    .id(10L).caminhao(caminhao()).tipoGrao(grao()).filial(filial()).build();
+
+            when(caminhaoRepository.findById(1L)).thenReturn(Optional.of(caminhao()));
+            when(tipoGraoRepository.findById(2L)).thenReturn(Optional.of(grao()));
+            when(filialRepository.findById(3L)).thenReturn(Optional.of(filial()));
+            when(transacaoRepository.findAbertasByCaminhao(1L)).thenReturn(List.of(transacaoAberta));
+
+            assertThatThrownBy(() -> service.abrir(new TransacaoRequestDTO(1L, 2L, 3L)))
+                    .isInstanceOf(CaminhaoEmTransporteException.class);
+
+            org.mockito.Mockito.verify(transacaoRepository, org.mockito.Mockito.never()).save(any());
         }
 
         @Test

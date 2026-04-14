@@ -34,7 +34,7 @@ public class IngestionService {
             while (deque.size() > windowSize) deque.pollFirst();
             return deque;
         });
-        log.debug("Leitura recebida: balanca={}, plate={}, weight={}kg, buffer={}",
+        log.info("Leitura recebida: balanca={}, plate={}, weight={}kg, buffer={}",
                 leitura.getId(), leitura.getPlate(), leitura.getWeight(),
                 buffer.get(leitura.getPlate()).size());
     }
@@ -45,7 +45,7 @@ public class IngestionService {
 
     public void limparBuffer(String plate) {
         buffer.remove(plate);
-        log.debug("Buffer limpo: plate={}", plate);
+        log.info("Buffer limpo: plate={}", plate);
     }
 
     public String gerarChaveIdempotencia(Long balancaId, String plate) {

@@ -82,6 +82,10 @@ public class StabilizationService {
 
         double pesoBruto = pesos.stream().mapToDouble(Double::doubleValue).average().orElse(0);
         double tara = transacao.getCaminhao().getTara();
+        if (!(BigDecimal.valueOf(pesoBruto).compareTo(BigDecimal.valueOf(tara)) == 1)) {
+            log.warn("Peso da carga menor que peso do caminhão: plate={}, peso carga={}kg, tara={}kg", leitura.getPlate(), pesoBruto, tara);
+            return;
+        }
         double pesoLiquido = pesoBruto - tara;
         double estoque = transacao.getTipoGrao().getEstoqueToneladas();
         double margem = calcularMargem(estoque);
